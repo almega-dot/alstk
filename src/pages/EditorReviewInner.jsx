@@ -16,12 +16,15 @@ export default function EditorReviewInner({ profile }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ Save feedback messages (top banner area)
+  // 🔒 ENTRY = view only (single source of truth)
+  const isViewOnly = profile.role_code === 'ENTRY';
+
+  // Save feedback messages
   const [saveMsgs, setSaveMsgs] = useState([]);
 
   const pushSaveMsg = (text, type = 'success') => {
     const id = `${Date.now()}-${Math.random()}`;
-    setSaveMsgs(prev => [{ id, type, text }, ...prev].slice(0, 5)); // keep last 5
+    setSaveMsgs(prev => [{ id, type, text }, ...prev].slice(0, 5));
     setTimeout(() => {
       setSaveMsgs(prev => prev.filter(m => m.id !== id));
     }, 4500);
@@ -128,7 +131,7 @@ export default function EditorReviewInner({ profile }) {
   }, [activeTab, plantCode]);
 
   /* ===============================
-     Local update
+     Local update (unchanged)
   =============================== */
   const updateRow = (id, patch) => {
     setRows(prev =>
@@ -172,7 +175,6 @@ export default function EditorReviewInner({ profile }) {
       return;
     }
 
-    // ✅ show confirmation message (material name + tag)
     const material =
       activeTab === 'NORMAL'
         ? r.materials?.material_name
@@ -181,7 +183,10 @@ export default function EditorReviewInner({ profile }) {
     const tag = (r.tag_no || '').trim() || '-';
     const when = new Date().toLocaleTimeString();
 
-    pushSaveMsg(`Saved: ${material || '(no material)'} | Tag: ${tag} | ${when}`, 'success');
+    pushSaveMsg(
+      `Saved: ${material || '(no material)'} | Tag: ${tag} | ${when}`,
+      'success'
+    );
   };
 
   const filteredRows = rows.filter(r =>
@@ -197,12 +202,17 @@ export default function EditorReviewInner({ profile }) {
 
       <h2>Editor Review</h2>
 
+      {isViewOnly && (
+        <div style={{ marginBottom: 10, color: '#555' }}>
+          View only access (ENTRY role)
+        </div>
+      )}
+
       <button onClick={() => setActiveTab('NORMAL')}>NORMAL</button>
       <button onClick={() => setActiveTab('MANUAL')}>MANUAL</button>
 
       <br /><br />
 
-      {/* ✅ Save messages area */}
       {saveMsgs.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           {saveMsgs.map(m => (
@@ -212,7 +222,10 @@ export default function EditorReviewInner({ profile }) {
                 padding: '8px 10px',
                 marginBottom: 6,
                 border: '1px solid #ccc',
-                borderLeft: m.type === 'error' ? '6px solid #c00' : '6px solid #2a8f2a',
+                borderLeft:
+                  m.type === 'error'
+                    ? '6px solid #c00'
+                    : '6px solid #2a8f2a',
                 background: '#fff',
                 borderRadius: 6,
                 fontSize: 14,
@@ -266,27 +279,32 @@ export default function EditorReviewInner({ profile }) {
                   <td>
                     <input
                       value={r.tag_no || ''}
+                      disabled={isViewOnly}
                       onChange={e =>
                         updateRow(id, { tag_no: e.target.value })
                       }
                     />
                   </td>
+
                   <td>{material}</td>
                   <td>{r.material_type}</td>
                   <td>{r.entry_uom}</td>
+
                   <td>
                     <input
                       type="number"
-                      disabled={r.is_zero || r.is_cancel}
+                      disabled={isViewOnly || r.is_zero || r.is_cancel}
                       value={r.counted_qty}
                       onChange={e =>
                         updateRow(id, { counted_qty: e.target.value })
                       }
                     />
                   </td>
+
                   <td>
                     <select
                       value={r.status}
+                      disabled={isViewOnly}
                       onChange={e =>
                         updateRow(id, { status: e.target.value })
                       }
@@ -296,29 +314,37 @@ export default function EditorReviewInner({ profile }) {
                       <option value="REJECT">REJECT</option>
                     </select>
                   </td>
+
                   <td>
                     <input
                       type="checkbox"
+                      disabled={isViewOnly}
                       checked={r.is_zero}
                       onChange={e =>
                         updateRow(id, { is_zero: e.target.checked })
                       }
                     />
                   </td>
+
                   <td>
                     <input
                       type="checkbox"
+                      disabled={isViewOnly}
                       checked={r.is_cancel}
                       onChange={e =>
                         updateRow(id, { is_cancel: e.target.checked })
                       }
                     />
                   </td>
+
                   <td>{r.entry_date}</td>
                   <td>{r.plant_code}</td>
                   <td>{r.location_code}</td>
+
                   <td>
-                    <button onClick={() => saveRow(r)}>💾</button>
+                    {!isViewOnly && (
+                      <button onClick={() => saveRow(r)}>💾</button>
+                    )}
                   </td>
                 </tr>
               );

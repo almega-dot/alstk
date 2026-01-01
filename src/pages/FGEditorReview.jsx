@@ -7,7 +7,7 @@ export default function FGEditorReview() {
 
   if (loading) return <div>Loading...</div>;
 
-  if (!profile || !['ADMIN', 'EDITOR'].includes(profile.role_code)) {
+  if (!profile || !['ADMIN', 'EDITOR', 'ENTRY'].includes(profile.role_code)) {
     return <Navigate to="/" replace />;
   }
 

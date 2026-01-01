@@ -43,7 +43,7 @@ export default function FGStockEntry() {
   useEffect(() => {
     if (!profile) return;
 
-    if (profile.role_code === 'EDITOR') {
+    if (profile.role_code === 'EDITOR' || profile.role_code === 'ENTRY') {
       setPlantId(profile.plant_id);
       setPlantCode(profile.plant_code);
     } else {

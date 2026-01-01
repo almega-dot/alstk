@@ -9,30 +9,21 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true;
 
-    const loadSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
+    const hydrate = async (session) => {
+      if (!mounted) return;
 
-      if (error) {
-        console.error('getSession error', error);
-        if (mounted) setLoading(false);
-        return;
-      }
-
-      const session = data.session;
       const currentUser = session?.user ?? null;
-
-      if (mounted) setUser(currentUser);
+      setUser(currentUser);
 
       if (!currentUser) {
-        if (mounted) {
-          setProfile(null);
-          setLoading(false);
-        }
+        setProfile(null);
+        setLoading(false);
         return;
       }
 
-      // ✅ FIXED: profile + plant JOIN
-      const { data: prof, error: profErr } = await supabase
+      setLoading(true); // 🔒 critical
+
+      const { data: prof, error } = await supabase
         .from('user_profile')
         .select(`
           user_id,
@@ -47,33 +38,31 @@ export function useAuth() {
         `)
         .eq('user_id', currentUser.id)
         .maybeSingle();
-        console.log('DEBUG auth user:', currentUser);
-console.log('DEBUG profile result:', prof, profErr);
 
-      if (profErr) {
-        console.warn('profile fetch warning:', profErr.message);
-      }
+      if (!mounted) return;
 
-      if (mounted) {
-        setProfile(
-          prof
-            ? {
-                ...prof,
-                plant_code: prof.plants?.plant_code || null,
-                plant_name: prof.plants?.plant_name || null,
-              }
-            : null
-        );
-        setLoading(false);
-      }
+      setProfile(
+        prof
+          ? {
+              ...prof,
+              plant_code: prof.plants?.plant_code || null,
+              plant_name: prof.plants?.plant_name || null,
+            }
+          : null
+      );
+
+      setLoading(false);
     };
 
-    loadSession();
+    // 1️⃣ Initial load
+    supabase.auth.getSession().then(({ data }) => {
+      hydrate(data.session);
+    });
 
+    // 2️⃣ Auth change listener
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        if (!mounted) return;
-        setUser(session?.user ?? null);
+        hydrate(session);
       }
     );
 

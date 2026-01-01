@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Auth from './pages/Auth';
 import AdminUsers from './pages/AdminUsers';
@@ -25,36 +25,23 @@ function Dashboard() {
 
       {isAdmin && (
         <div>
-          <a href="/admin/users">Admin – User Management</a>
+          <Link to="/admin/users">Admin – User Management</Link>
         </div>
       )}
 
-      <div>
-        <a href="/stock-entry">Stock Entry</a>
-      </div>
-      <div>
-      <a href="/manual-stock-entry">Manual Stock Entry</a>
-</div>
-<div>
-  <a href="/fg-stock-entry">FG Stock Entry</a>
-</div>
-<div>
-  <a href="/fg-stock-entry-manual">FG Stock Entry Manual</a>
-</div>
-
-
-<div>
-  <a href="/editor-review">Editor Review</a>
-</div>
-<div>
-  <a href="/fg-editor-review">FG Editor Review</a>
-</div>
+      <div><Link to="/stock-entry">Stock Entry</Link></div>
+      <div><Link to="/manual-stock-entry">Manual Stock Entry</Link></div>
+      <div><Link to="/fg-stock-entry">FG Stock Entry</Link></div>
+      <div><Link to="/fg-stock-entry-manual">FG Stock Entry Manual</Link></div>
+      <div><Link to="/editor-review">Editor Review</Link></div>
+      <div><Link to="/fg-editor-review">FG Editor Review</Link></div>
 
       <br />
       <button onClick={logout}>Logout</button>
     </div>
   );
 }
+
 
 export default function App() {
   const { user, loading } = useAuth();
