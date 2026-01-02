@@ -11,6 +11,7 @@ import FGStockEntry from './pages/FGStockEntry';
 import FGStockEntryManual from './pages/FGStockEntryManual';
 import FGEditorReview from './pages/FGEditorReview';
 import Reports from './pages/Reports';
+import ReportsAdminFG from './pages/ReportsAdminFG';
 
 /* ===============================
    Simple route guards
@@ -90,9 +91,13 @@ function Dashboard() {
           </Link>
         </div>
         <Link to="/reports" className="dash-card">
-  <div className="dash-icon">📊</div>
-  <div className="dash-text">Reports</div>
-</Link>
+         <div className="dash-icon">📊</div>
+        <div className="dash-text">Reports</div>
+        </Link>
+        <Link to="/reports/admin-fg" className="dash-card">
+        <div className="dash-icon">📊</div>
+        <div className="dash-text">ADMIX FG REPORT</div>
+        </Link>
 
         <div className="dash-footer">
           <button className="logout-btn" onClick={logout}>
@@ -193,6 +198,14 @@ export default function App() {
   element={
     <ProtectedRoute>
       <Reports />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/reports/admin-fg"
+  element={
+    <ProtectedRoute>
+      <ReportsAdminFG />
     </ProtectedRoute>
   }
 />
