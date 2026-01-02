@@ -42,72 +42,73 @@ function Dashboard() {
 
   return (
     <div className="dash-page">
-      <div className="dash-container">
-        <h2 className="dash-title">Dashboard</h2>
-
+      {/* HEADER */}
+      <div className="dash-header">
+        <h2>Dashboard</h2>
         <div className="dash-sub">
           Logged in as <b>{profile?.role_code}</b>
-          {profile?.plant_code && (
-            <> · Plant: <b>{profile.plant_code}</b></>
-          )}
+          {profile?.plant_code && <> · Plant: <b>{profile.plant_code}</b></>}
         </div>
+      </div>
 
-        <div className="dash-grid">
-          {isAdmin && (
-            <Link to="/admin/users" className="dash-card admin">
-              <div className="dash-icon">👤</div>
-              <div className="dash-text">User Management</div>
-            </Link>
-          )}
-
-          <Link to="/stock-entry" className="dash-card">
-            <div className="dash-icon">📦</div>
-            <div className="dash-text">Stock Entry</div>
+      {/* GRID */}
+      <div className="dash-grid">
+        {isAdmin && (
+          <Link to="/admin/users" className="dash-card admin">
+            <div className="dash-icon">👤</div>
+            <div className="dash-text">User Management</div>
           </Link>
+        )}
 
-          <Link to="/manual-stock-entry" className="dash-card">
-            <div className="dash-icon">✍</div>
-            <div className="dash-text">Manual Stock Entry</div>
-          </Link>
+        <Link to="/stock-entry" className="dash-card">
+          <div className="dash-icon">📦</div>
+          <div className="dash-text">Stock Entry</div>
+        </Link>
 
-          <Link to="/editor-review" className="dash-card">
-            <div className="dash-icon">🔍</div>
-            <div className="dash-text">Editor Review</div>
-          </Link>
+        <Link to="/manual-stock-entry" className="dash-card">
+          <div className="dash-icon">✍</div>
+          <div className="dash-text">Manual Stock Entry</div>
+        </Link>
 
-          <Link to="/fg-stock-entry" className="dash-card">
-            <div className="dash-icon">🏭</div>
-            <div className="dash-text">FG Stock Entry</div>
-          </Link>
+        <Link to="/editor-review" className="dash-card">
+          <div className="dash-icon">🔍</div>
+          <div className="dash-text">Editor Review</div>
+        </Link>
 
-          <Link to="/fg-stock-entry-manual" className="dash-card">
-            <div className="dash-icon">✍</div>
-            <div className="dash-text">FG Manual Entry</div>
-          </Link>
+        <Link to="/fg-stock-entry" className="dash-card">
+          <div className="dash-icon">🏭</div>
+          <div className="dash-text">FG Stock Entry</div>
+        </Link>
 
-          <Link to="/fg-editor-review" className="dash-card">
-            <div className="dash-icon">🔎</div>
-            <div className="dash-text">FG Editor Review</div>
-          </Link>
-        </div>
+        <Link to="/fg-stock-entry-manual" className="dash-card">
+          <div className="dash-icon">✍</div>
+          <div className="dash-text">FG Manual Entry</div>
+        </Link>
+
+        <Link to="/fg-editor-review" className="dash-card">
+          <div className="dash-icon">🔎</div>
+          <div className="dash-text">FG Editor Review</div>
+        </Link>
+
         <Link to="/reports" className="dash-card">
-         <div className="dash-icon">📊</div>
-        <div className="dash-text">Reports</div>
-        </Link>
-        <Link to="/reports/admin-fg" className="dash-card">
-        <div className="dash-icon">📊</div>
-        <div className="dash-text">ADMIX FG REPORT</div>
+          <div className="dash-icon">📊</div>
+          <div className="dash-text">Reports</div>
         </Link>
 
-        <div className="dash-footer">
-          <button className="logout-btn" onClick={logout}>
-            Logout
-          </button>
-        </div>
+        <Link to="/reports/admin-fg" className="dash-card">
+          <div className="dash-icon">📊</div>
+          <div className="dash-text">FG Reports</div>
+        </Link>
+      </div>
+
+      {/* FOOTER */}
+      <div className="dash-footer">
+        <button className="logout-btn" onClick={logout}>Logout</button>
       </div>
     </div>
   );
 }
+
 
 
 

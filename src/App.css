@@ -1,117 +1,112 @@
+/* ===============================
+   APP LEVEL STYLES (SAFE ZONE)
+   No dashboard layout here
+=============================== */
+
+/* ROOT WRAPPER */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-/* ===== DASHBOARD ===== */
-
-.dash-wrap {
   min-height: 100vh;
-  background: linear-gradient(135deg, #eef2f7, #f9fbfd);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
 }
 
-.dash-card {
-  width: 420px;
+/* COMMON PAGE WRAPPER (optional use) */
+.page {
+  padding: 20px;
+}
+
+/* SIMPLE CARD (for forms, reports, etc.) */
+.app-card {
   background: #ffffff;
   border-radius: 14px;
-  padding: 28px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
 }
 
-.dash-title {
-  margin: 0;
+/* HEADINGS */
+.page-title {
+  margin: 0 0 12px 0;
   font-size: 22px;
-  text-align: center;
+  font-weight: 700;
 }
 
-.dash-sub {
-  text-align: center;
+.page-subtitle {
   font-size: 13px;
   color: #666;
-  margin-top: 6px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
-.dash-grid {
-  display: grid;
-  gap: 12px;
+/* TABLE SAFE DEFAULT */
+table {
+  border-collapse: collapse;
 }
 
-.dash-link {
-  display: block;
-  padding: 12px 14px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 15px;
-  background: #f5f7fa;
-  color: #333;
-  transition: all 0.2s ease;
-}
-
-.dash-link:hover {
-  background: #e8eef7;
-  transform: translateY(-1px);
-}
-
-.dash-link.admin {
-  background: #eef6ff;
+th {
+  font-size: 13px;
   font-weight: 600;
+  color: #444;
 }
 
-.dash-footer {
-  margin-top: 22px;
-  text-align: center;
+td {
+  font-size: 13px;
+  color: #222;
 }
 
-.logout-btn {
-  background: #ff4d4f;
+/* FORM ELEMENTS */
+input,
+select,
+textarea {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+/* PRIMARY BUTTON */
+.btn-primary {
+  background: #2563eb;
   color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.logout-btn:hover {
-  background: #e64545;
+.btn-primary:hover {
+  background: #1d4ed8;
 }
+
+/* SECONDARY BUTTON */
+.btn-secondary {
+  background: #f1f5f9;
+  color: #111;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+/* UTILITY */
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-10 { margin-top: 10px; }
+.mt-20 { margin-top: 20px; }
+.mb-10 { margin-bottom: 10px; }
+.mb-20 { margin-bottom: 20px; }
