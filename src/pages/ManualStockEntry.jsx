@@ -22,7 +22,7 @@ export default function ManualStockEntry() {
   const [rows, setRows] = useState([]);
 
   /* ===============================
-     Load locations
+     Load locations (UNCHANGED)
   =============================== */
   useEffect(() => {
     if (!profile?.plant_code) return;
@@ -36,7 +36,7 @@ export default function ManualStockEntry() {
   }, [profile]);
 
   /* ===============================
-     Load UOM master
+     Load UOM master (UNCHANGED)
   =============================== */
   useEffect(() => {
     supabase
@@ -54,7 +54,7 @@ export default function ManualStockEntry() {
   }, [locationId, materialType]);
 
   /* ===============================
-     Row handlers
+     Row handlers (UNCHANGED)
   =============================== */
   const addRow = () => {
     setRows(r => [
@@ -77,7 +77,6 @@ export default function ManualStockEntry() {
       r.map((row, idx) => {
         if (idx !== i) return row;
         const next = { ...row, ...patch };
-
         if (patch.is_zero === true) {
           next.qty = 0;
           next.status = 'NORMAL';
@@ -92,18 +91,12 @@ export default function ManualStockEntry() {
   };
 
   /* ===============================
-     Submit
+     Submit (UNCHANGED)
   =============================== */
   const submit = async () => {
-    if (!rows.length) {
-      alert('No rows to submit');
-      return;
-    }
-
-    if (!locationId || !materialType) {
-      alert('Location and Material Type required');
-      return;
-    }
+    if (!rows.length) return alert('No rows to submit');
+    if (!locationId || !materialType)
+      return alert('Location and Material Type required');
 
     const payload = rows
       .filter(r => r.material_name.trim() !== '')
@@ -111,38 +104,27 @@ export default function ManualStockEntry() {
         entry_date: entryDate,
         plant_id: profile.plant_id,
         plant_code: profile.plant_code,
-
         location_id: locationId,
         location_code: locationCode,
-
         material_name: r.material_name.trim(),
         material_type: materialType,
         entry_uom: r.entry_uom,
-
         counted_qty: r.is_zero ? 0 : Number(r.qty || 0),
         status: r.status,
         is_zero: r.is_zero,
         is_cancel: r.is_cancel,
-
         tag_no: r.tag_no,
         remarks: r.remarks,
-
         created_by: user.id,
       }));
 
-    if (!payload.length) {
-      alert('Material name required');
-      return;
-    }
+    if (!payload.length) return alert('Material name required');
 
     const { error } = await supabase
       .from('stock_entries_manual')
       .insert(payload);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    if (error) return alert(error.message);
 
     alert('Manual stock entry submitted');
     navigate('/');
@@ -151,185 +133,283 @@ export default function ManualStockEntry() {
   if (loading) return <div>Loading...</div>;
   if (!profile) return <div>No profile</div>;
 
+  /* ===============================
+     UI (LOOK ONLY)
+  =============================== */
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Manual Stock Entry</h2>
-      <button onClick={() => navigate('/')}>⬅ Back</button>
-      <hr />
-
-      {/* HEADER */}
-      <div style={{ display: 'flex', gap: 12 }}>
-        <div>
-          <label>Plant</label>
-          <input value={profile.plant_code} readOnly />
-        </div>
-
-        <div>
-          <label>Date</label>
-          <input
-            type="date"
-            value={entryDate}
-            onChange={e => setEntryDate(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Location</label>
-          <select
-            value={locationId}
-            onChange={e => {
-              const loc = locations.find(
-                l => l.location_id === e.target.value
-              );
-              setLocationId(loc.location_id);
-              setLocationCode(loc.location_code);
-            }}
-          >
-            <option value="">Select</option>
-            {locations.map(l => (
-              <option key={l.location_id} value={l.location_id}>
-                {l.location_code}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label>Material Type</label>
-          <select
-            value={materialType}
-            onChange={e => setMaterialType(e.target.value)}
-          >
-            <option value="">Select</option>
-            {MATERIAL_TYPES.map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </div>
+    <div style={styles.page}>
+      <div style={styles.header}>
+        <button style={styles.backBtn} onClick={() => navigate('/')}>
+          ← Back
+        </button>
+        <h2 style={styles.title}>Manual Stock Entry</h2>
       </div>
 
-      <hr />
+      <div style={styles.card}>
+        {/* Header */}
+        <div style={styles.grid}>
+          <div>
+            <label>Plant</label>
+            <input style={styles.input} value={profile.plant_code} readOnly />
+          </div>
 
-      <button onClick={addRow}>➕ Add Row</button>
+          <div>
+            <label>Date</label>
+            <input
+              type="date"
+              style={styles.input}
+              value={entryDate}
+              onChange={e => setEntryDate(e.target.value)}
+            />
+          </div>
 
-      <table border="1" cellPadding="6" style={{ marginTop: 10 }}>
-        <thead>
-          <tr>
-            <th>Sl</th>
-            <th>Tag</th>
-            <th>Material Name</th>
-            <th>UOM</th>
-            <th>Qty</th>
-            <th>Status</th>
-            <th>Zero</th>
-            <th>Cancel</th>
-            <th>Remarks</th>
-            <th>❌</th>
-          </tr>
-        </thead>
+          <div>
+            <label>Location</label>
+            <select
+              style={styles.input}
+              value={locationId}
+              onChange={e => {
+                const loc = locations.find(
+                  l => l.location_id === e.target.value
+                );
+                setLocationId(loc.location_id);
+                setLocationCode(loc.location_code);
+              }}
+            >
+              <option value="">Select</option>
+              {locations.map(l => (
+                <option key={l.location_id} value={l.location_id}>
+                  {l.location_code}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <tbody>
-          {rows.map((r, idx) => (
-            <tr key={idx}>
-              <td>{idx + 1}</td>
+          <div>
+            <label>Material Type</label>
+            <select
+              style={styles.input}
+              value={materialType}
+              onChange={e => setMaterialType(e.target.value)}
+            >
+              <option value="">Select</option>
+              {MATERIAL_TYPES.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-              <td>
-                <input
-                  value={r.tag_no}
-                  onChange={e =>
-                    updateRow(idx, { tag_no: e.target.value })
-                  }
-                />
-              </td>
+        <hr />
 
-              <td>
-                <input
-                  value={r.material_name}
-                  onChange={e =>
-                    updateRow(idx, { material_name: e.target.value })
-                  }
-                />
-              </td>
+        <button style={styles.addBtn} onClick={addRow}>
+          ➕ Add Row
+        </button>
 
-              <td>
-                <select
-                  value={r.entry_uom}
-                  onChange={e =>
-                    updateRow(idx, { entry_uom: e.target.value })
-                  }
-                >
-                  {uoms.map(u => (
-                    <option key={u.uom_code} value={u.uom_code}>
-                      {u.uom_code}
-                    </option>
-                  ))}
-                </select>
-              </td>
-
-              <td>
-                <input
-                  type="number"
-                  disabled={r.is_zero || r.is_cancel}
-                  value={r.qty}
-                  onChange={e =>
-                    updateRow(idx, { qty: e.target.value })
-                  }
-                />
-              </td>
-
-              <td>
-                <select
-                  value={r.status}
-                  disabled={r.is_zero}
-                  onChange={e =>
-                    updateRow(idx, { status: e.target.value })
-                  }
-                >
-                  <option value="NORMAL">NORMAL</option>
-                  <option value="QA">QA</option>
-                  <option value="REJECT">REJECT</option>
-                </select>
-              </td>
-
-              <td>
-                <input
-                  type="checkbox"
-                  checked={r.is_zero}
-                  onChange={e =>
-                    updateRow(idx, { is_zero: e.target.checked })
-                  }
-                />
-              </td>
-
-              <td>
-                <input
-                  type="checkbox"
-                  checked={r.is_cancel}
-                  onChange={e =>
-                    updateRow(idx, { is_cancel: e.target.checked })
-                  }
-                />
-              </td>
-
-              <td>
-                <input
-                  value={r.remarks}
-                  onChange={e =>
-                    updateRow(idx, { remarks: e.target.value })
-                  }
-                />
-              </td>
-
-              <td>
-                <button onClick={() => deleteRow(idx)}>🗑</button>
-              </td>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th>Sl</th>
+              <th>Tag</th>
+              <th>Material Name</th>
+              <th>UOM</th>
+              <th>Qty</th>
+              <th>Status</th>
+              <th>Zero</th>
+              <th>Cancel</th>
+              <th>Remarks</th>
+              <th></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
 
-      <hr />
-      <button onClick={submit}>✅ Submit</button>
+          <tbody>
+            {rows.map((r, idx) => (
+              <tr key={idx}>
+                <td>{idx + 1}</td>
+
+                <td>
+                  <input
+                    style={styles.input}
+                    value={r.tag_no}
+                    onChange={e =>
+                      updateRow(idx, { tag_no: e.target.value })
+                    }
+                  />
+                </td>
+
+                <td>
+                  <input
+                    style={styles.input}
+                    value={r.material_name}
+                    onChange={e =>
+                      updateRow(idx, { material_name: e.target.value })
+                    }
+                  />
+                </td>
+
+                <td>
+                  <select
+                    style={styles.input}
+                    value={r.entry_uom}
+                    onChange={e =>
+                      updateRow(idx, { entry_uom: e.target.value })
+                    }
+                  >
+                    {uoms.map(u => (
+                      <option key={u.uom_code} value={u.uom_code}>
+                        {u.uom_code}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+
+                <td>
+                  <input
+                    type="number"
+                    style={styles.input}
+                    disabled={r.is_zero || r.is_cancel}
+                    value={r.qty}
+                    onChange={e =>
+                      updateRow(idx, { qty: e.target.value })
+                    }
+                  />
+                </td>
+
+                <td>
+                  <select
+                    style={styles.input}
+                    disabled={r.is_zero}
+                    value={r.status}
+                    onChange={e =>
+                      updateRow(idx, { status: e.target.value })
+                    }
+                  >
+                    <option value="NORMAL">NORMAL</option>
+                    <option value="QA">QA</option>
+                    <option value="REJECT">REJECT</option>
+                  </select>
+                </td>
+
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={r.is_zero}
+                    onChange={e =>
+                      updateRow(idx, { is_zero: e.target.checked })
+                    }
+                  />
+                </td>
+
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={r.is_cancel}
+                    onChange={e =>
+                      updateRow(idx, { is_cancel: e.target.checked })
+                    }
+                  />
+                </td>
+
+                <td>
+                  <input
+                    style={styles.input}
+                    value={r.remarks}
+                    onChange={e =>
+                      updateRow(idx, { remarks: e.target.value })
+                    }
+                  />
+                </td>
+
+                <td>
+                  <button
+                    style={styles.deleteBtn}
+                    onClick={() => deleteRow(idx)}
+                  >
+                    🗑
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <hr />
+
+        <button style={styles.submitBtn} onClick={submit}>
+          ✅ Submit
+        </button>
+      </div>
     </div>
   );
 }
+
+/* ===============================
+   Styles (UI ONLY)
+=============================== */
+const styles = {
+  page: {
+    padding: 24,
+    fontFamily: 'Inter, system-ui, Arial, sans-serif',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
+  title: { margin: 0, fontSize: 20, fontWeight: 700 },
+  backBtn: {
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: '1px solid #ccc',
+    background: '#fff',
+    cursor: 'pointer',
+  },
+  card: {
+    background: '#fff',
+    borderRadius: 10,
+    padding: 16,
+    boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: 12,
+  },
+  input: {
+    width: '100%',
+    padding: '6px 8px',
+    borderRadius: 6,
+    border: '1px solid #ccc',
+    fontSize: 13,
+  },
+  addBtn: {
+    marginBottom: 10,
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: 'none',
+    background: '#2c5364',
+    color: '#fff',
+    cursor: 'pointer',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginTop: 10,
+  },
+  deleteBtn: {
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+  },
+  submitBtn: {
+    marginTop: 12,
+    padding: '8px 16px',
+    borderRadius: 6,
+    border: 'none',
+    background: '#2c5364',
+    color: '#fff',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+};

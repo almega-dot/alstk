@@ -40,3 +40,78 @@
 .read-the-docs {
   color: #888;
 }
+/* ===== DASHBOARD ===== */
+
+.dash-wrap {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eef2f7, #f9fbfd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-card {
+  width: 420px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+.dash-title {
+  margin: 0;
+  font-size: 22px;
+  text-align: center;
+}
+
+.dash-sub {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  margin-top: 6px;
+  margin-bottom: 22px;
+}
+
+.dash-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.dash-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 15px;
+  background: #f5f7fa;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.dash-link:hover {
+  background: #e8eef7;
+  transform: translateY(-1px);
+}
+
+.dash-link.admin {
+  background: #eef6ff;
+  font-weight: 600;
+}
+
+.dash-footer {
+  margin-top: 22px;
+  text-align: center;
+}
+
+.logout-btn {
+  background: #ff4d4f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: #e64545;
+}
