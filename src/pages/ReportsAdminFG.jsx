@@ -21,27 +21,27 @@ export default function ReportsAdminFG() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // admin only
+  // admin plant selector
   const [plants, setPlants] = useState([]);
   const [selectedPlantId, setSelectedPlantId] = useState('');
 
- /* =========================
-   Resolve Plant Context
-========================= */
-const effectivePlantId = isAdmin
-? (selectedPlantId || profile?.plant_id)
-: profile?.plant_id;
+  /* =========================
+     Resolve Plant Context
+  ========================= */
+  const effectivePlantId = isAdmin
+    ? (selectedPlantId || profile?.plant_id)
+    : profile?.plant_id;
 
-const effectivePlantCode = useMemo(() => {
-if (!isAdmin) return profile?.plant_code || '';
-const p =
-  plants.find(x => x.plant_id === selectedPlantId) ||
-  plants.find(x => x.plant_id === profile?.plant_id);
-return p?.plant_code || '';
-}, [isAdmin, profile, plants, selectedPlantId]);
+  const effectivePlantCode = useMemo(() => {
+    if (!isAdmin) return profile?.plant_code || '';
+    const p =
+      plants.find(x => x.plant_id === selectedPlantId) ||
+      plants.find(x => x.plant_id === profile?.plant_id);
+    return p?.plant_code || '';
+  }, [isAdmin, profile, plants, selectedPlantId]);
 
   /* =========================
-     Load plants for admin
+     Load plants (ADMIN only)
   ========================= */
   useEffect(() => {
     if (!isAdmin) return;
@@ -98,25 +98,24 @@ return p?.plant_code || '';
     }
 
     const sheetData = rows.map(r => {
-      // Expected fields from RPC:
-      // plant_code, (location_code optional), material_name, entry_uom, total_qty, total_pack
-      if (showLocation) {
-        return {
-          Plant: r.plant_code,
-          Location: r.location_code,
-          Material: r.material_name,
-          UOM: r.entry_uom,
-          'Total Qty': Number(r.total_qty),
-          'Total Pack': Number(r.total_pack),
-        };
-      }
-      return {
+      const base = {
         Plant: r.plant_code,
         Material: r.material_name,
+        Status: r.status || 'NORMAL',   // 🔒 future-safe
         UOM: r.entry_uom,
         'Total Qty': Number(r.total_qty),
         'Total Pack': Number(r.total_pack),
       };
+
+      if (showLocation) {
+        return {
+          Plant: r.plant_code,
+          Location: r.location_code,
+          ...base,
+        };
+      }
+
+      return base;
     });
 
     const tabLabel = TABS.find(t => t.key === activeTab)?.key || 'X';
@@ -134,8 +133,9 @@ return p?.plant_code || '';
   ========================= */
   return (
     <div style={{ padding: 24 }}>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <h2 style={{ margin: 0 }}>FG Reports (ADMIX_FG)</h2>
+        <h2 style={{ margin: 0 }}>FG Reports (ADMIN_FG)</h2>
 
         <div style={{ display: 'flex', gap: 8 }}>
           <button
@@ -170,18 +170,19 @@ return p?.plant_code || '';
       </div>
 
       {/* Filters */}
-      <div style={{
-        border: '1px solid #e6e6e6',
-        borderRadius: 10,
-        padding: 14,
-        marginBottom: 12,
-        display: 'flex',
-        gap: 14,
-        alignItems: 'end',
-        flexWrap: 'wrap',
-        background: '#fafafa',
-      }}>
-        {/* Plant */}
+      <div
+        style={{
+          border: '1px solid #e6e6e6',
+          borderRadius: 10,
+          padding: 14,
+          marginBottom: 12,
+          display: 'flex',
+          gap: 14,
+          alignItems: 'end',
+          flexWrap: 'wrap',
+          background: '#fafafa',
+        }}
+      >
         {!isAdmin && (
           <div style={{ fontSize: 13 }}>
             Plant: <b>{effectivePlantCode || '—'}</b>
@@ -206,13 +207,12 @@ return p?.plant_code || '';
           </div>
         )}
 
-        {/* Search */}
         <div>
           <label style={{ fontSize: 12 }}>Global Search</label><br />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Material / Location / Plant"
+            placeholder="Material / Location / Status"
             style={{ padding: 8, minWidth: 280 }}
           />
         </div>
@@ -246,6 +246,7 @@ return p?.plant_code || '';
               <th align="left">Plant</th>
               {showLocation && <th align="left">Location</th>}
               <th align="left">Material</th>
+              <th align="left">Status</th>
               <th align="left">UOM</th>
               <th align="right">Total Qty</th>
               <th align="right">Total Pack</th>
@@ -255,13 +256,13 @@ return p?.plant_code || '';
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={showLocation ? 6 : 5} align="center">Loading…</td>
+                <td colSpan={showLocation ? 7 : 6} align="center">Loading…</td>
               </tr>
             )}
 
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={showLocation ? 6 : 5} align="center">No data</td>
+                <td colSpan={showLocation ? 7 : 6} align="center">No data</td>
               </tr>
             )}
 
@@ -270,6 +271,7 @@ return p?.plant_code || '';
                 <td>{r.plant_code}</td>
                 {showLocation && <td>{r.location_code}</td>}
                 <td>{r.material_name}</td>
+                <td>{r.status || 'NORMAL'}</td>
                 <td>{r.entry_uom}</td>
                 <td align="right">{Number(r.total_qty).toLocaleString()}</td>
                 <td align="right">{Number(r.total_pack).toLocaleString()}</td>
@@ -278,7 +280,6 @@ return p?.plant_code || '';
           </tbody>
         </table>
       </div>
-
     </div>
   );
 }
