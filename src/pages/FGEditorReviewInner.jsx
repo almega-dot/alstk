@@ -12,32 +12,34 @@ export default function FGEditorReviewInner({ profile }) {
   const [activeTab, setActiveTab] = useState('FG'); // FG | FG_MANUAL
   const [plantCode, setPlantCode] = useState('');
   const [plants, setPlants] = useState([]);
-  const [locationCode, setLocationCode] = useState('');
-  const [locations, setLocations] = useState([]);
 
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
 
-  /* ===============================
-     Save messages
-  =============================== */
-  const [saveMsgs, setSaveMsgs] = useState([]);
+  // 🔒 ENTRY = view only
+  const isViewOnly = profile.role_code === 'ENTRY';
 
-  const pushSaveMsg = (text, type = 'success') => {
+  /* ===============================
+     Toast messages
+  =============================== */
+  const [msgs, setMsgs] = useState([]);
+
+  const pushMsg = (text, type = 'success') => {
     const id = `${Date.now()}-${Math.random()}`;
-    setSaveMsgs(prev => [{ id, text, type }, ...prev].slice(0, 5));
-    setTimeout(
-      () => setSaveMsgs(prev => prev.filter(m => m.id !== id)),
-      4500
-    );
+    setMsgs(p => [{ id, text, type }, ...p].slice(0, 5));
+    setTimeout(() => {
+      setMsgs(p => p.filter(m => m.id !== id));
+    }, 4500);
   };
 
   /* ===============================
      Plant logic
+     ENTRY / EDITOR → fixed
+     ADMIN          → selectable
   =============================== */
   useEffect(() => {
-    if (profile.role_code === 'EDITOR') {
+    if (profile.role_code === 'ENTRY' || profile.role_code === 'EDITOR') {
       setPlantCode(profile.plant_code);
     } else {
       supabase
@@ -49,21 +51,7 @@ export default function FGEditorReviewInner({ profile }) {
   }, [profile]);
 
   /* ===============================
-     Locations
-  =============================== */
-  useEffect(() => {
-    if (!plantCode) return;
-
-    supabase
-      .from('locations')
-      .select('location_code')
-      .eq('plant_code', plantCode)
-      .eq('is_active', true)
-      .then(({ data }) => setLocations(data || []));
-  }, [plantCode]);
-
-  /* ===============================
-     Fetch FG rows + material name (frontend join)
+     FETCH DATA
   =============================== */
   useEffect(() => {
     if (!plantCode) {
@@ -74,31 +62,75 @@ export default function FGEditorReviewInner({ profile }) {
     setLoading(true);
 
     const load = async () => {
-      const table =
-        activeTab === 'FG'
-          ? 'stock_entries_fg'
-          : 'stock_entries_fg_manual';
+      /* ================= FG ================= */
+      if (activeTab === 'FG') {
+        const { data, error } = await supabase
+          .from('stock_entries_fg')
+          .select(`
+            fg_entry_id,
+            tag_no,
+            batch_no,
+            po_no,
+            material_id,
+            entry_uom,
+            counted_qty,
+            pack_count,
+            status,
+            is_zero,
+            is_cancel,
+            plant_code,
+            location_code
+          `)
+          .eq('plant_code', plantCode)
+          .order('created_at', { ascending: false });
 
-      const idCol =
-        activeTab === 'FG'
-          ? 'fg_entry_id'
-          : 'fg_manual_entry_id';
+        if (error) {
+          setLoading(false);
+          pushMsg(error.message, 'error');
+          return;
+        }
 
+        // material join
+        const ids = [...new Set(data.map(r => r.material_id).filter(Boolean))];
+        let matMap = {};
+
+        if (ids.length) {
+          const { data: mats } = await supabase
+            .from('materials')
+            .select('material_id, material_name')
+            .in('material_id', ids);
+
+          (mats || []).forEach(m => {
+            matMap[m.material_id] = m.material_name;
+          });
+        }
+
+        setRows(
+          data.map(r => ({
+            ...r,
+            material_name: matMap[r.material_id] || '—',
+          }))
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      /* ================= FG MANUAL ================= */
       const { data, error } = await supabase
-        .from(table)
+        .from('stock_entries_fg_manual')
         .select(`
-          ${idCol},
+          fg_manual_entry_id,
           tag_no,
           batch_no,
           po_no,
-          material_id,
+          material_name,
           entry_uom,
           counted_qty,
           pack_count,
           status,
           is_zero,
           is_cancel,
-          entry_date,
           plant_code,
           location_code
         `)
@@ -107,33 +139,11 @@ export default function FGEditorReviewInner({ profile }) {
 
       if (error) {
         setLoading(false);
-        pushSaveMsg(`Load failed: ${error.message}`, 'error');
+        pushMsg(error.message, 'error');
         return;
       }
 
-      /* ---- frontend material join ---- */
-      const materialIds = [
-        ...new Set(data.map(r => r.material_id).filter(Boolean)),
-      ];
-
-      let matMap = {};
-      if (materialIds.length) {
-        const { data: mats } = await supabase
-          .from('materials')
-          .select('material_id, material_name')
-          .in('material_id', materialIds);
-
-        (mats || []).forEach(m => {
-          matMap[m.material_id] = m.material_name;
-        });
-      }
-
-      const finalRows = data.map(r => ({
-        ...r,
-        material_name: matMap[r.material_id] || '—',
-      }));
-
-      setRows(finalRows);
+      setRows(data || []);
       setLoading(false);
     };
 
@@ -141,19 +151,23 @@ export default function FGEditorReviewInner({ profile }) {
   }, [activeTab, plantCode]);
 
   /* ===============================
-     Local update
+     UPDATE / SAVE
   =============================== */
   const updateRow = (id, patch) => {
-    setRows(prev =>
-      prev.map(r =>
-        r.fg_entry_id === id || r.fg_manual_entry_id === id
-          ? { ...r, ...patch }
-          : r
+    if (isViewOnly) return;
+
+    setRows(r =>
+      r.map(x =>
+        x.fg_entry_id === id || x.fg_manual_entry_id === id
+          ? { ...x, ...patch }
+          : x
       )
     );
   };
 
   const saveRow = async r => {
+    if (isViewOnly) return;
+
     const table =
       activeTab === 'FG'
         ? 'stock_entries_fg'
@@ -181,13 +195,11 @@ export default function FGEditorReviewInner({ profile }) {
       .eq(idCol, r[idCol]);
 
     if (error) {
-      pushSaveMsg(`Save failed: ${error.message}`, 'error');
+      pushMsg(error.message, 'error');
       return;
     }
 
-    pushSaveMsg(
-      `Saved: ${r.material_name} | Tag: ${r.tag_no || '-'}`
-    );
+    pushMsg(`Saved: ${r.material_name || '-'} | ${r.tag_no || '-'}`);
   };
 
   const filteredRows = rows.filter(r =>
@@ -203,14 +215,18 @@ export default function FGEditorReviewInner({ profile }) {
 
       <h2>FG Editor Review</h2>
 
+      {isViewOnly && (
+        <div style={{ marginBottom: 10, color: '#555' }}>
+          View only access (ENTRY role)
+        </div>
+      )}
+
       <button onClick={() => setActiveTab('FG')}>FG</button>
-      <button onClick={() => setActiveTab('FG_MANUAL')}>
-        FG MANUAL
-      </button>
+      <button onClick={() => setActiveTab('FG_MANUAL')}>FG MANUAL</button>
 
       <br /><br />
 
-      {saveMsgs.map(m => (
+      {msgs.map(m => (
         <div
           key={m.id}
           style={{
@@ -259,14 +275,14 @@ export default function FGEditorReviewInner({ profile }) {
 
           <tbody>
             {filteredRows.map(r => {
-              const id =
-                r.fg_entry_id || r.fg_manual_entry_id;
+              const id = r.fg_entry_id || r.fg_manual_entry_id;
 
               return (
                 <tr key={id}>
                   <td>
                     <input
                       value={r.tag_no || ''}
+                      disabled={isViewOnly}
                       onChange={e =>
                         updateRow(id, { tag_no: e.target.value })
                       }
@@ -279,30 +295,27 @@ export default function FGEditorReviewInner({ profile }) {
                   <td>
                     <input
                       type="number"
-                      disabled={r.is_zero || r.is_cancel}
+                      disabled={isViewOnly || r.is_zero || r.is_cancel}
                       value={r.counted_qty}
                       onChange={e =>
-                        updateRow(id, {
-                          counted_qty: e.target.value,
-                        })
+                        updateRow(id, { counted_qty: e.target.value })
                       }
                     />
                   </td>
                   <td>
                     <input
                       type="number"
-                      disabled={r.is_zero || r.is_cancel}
+                      disabled={isViewOnly || r.is_zero || r.is_cancel}
                       value={r.pack_count}
                       onChange={e =>
-                        updateRow(id, {
-                          pack_count: e.target.value,
-                        })
+                        updateRow(id, { pack_count: e.target.value })
                       }
                     />
                   </td>
                   <td>
                     <select
                       value={r.status}
+                      disabled={isViewOnly}
                       onChange={e =>
                         updateRow(id, { status: e.target.value })
                       }
@@ -317,29 +330,29 @@ export default function FGEditorReviewInner({ profile }) {
                   <td>
                     <input
                       type="checkbox"
+                      disabled={isViewOnly}
                       checked={r.is_zero}
                       onChange={e =>
-                        updateRow(id, {
-                          is_zero: e.target.checked,
-                        })
+                        updateRow(id, { is_zero: e.target.checked })
                       }
                     />
                   </td>
                   <td>
                     <input
                       type="checkbox"
+                      disabled={isViewOnly}
                       checked={r.is_cancel}
                       onChange={e =>
-                        updateRow(id, {
-                          is_cancel: e.target.checked,
-                        })
+                        updateRow(id, { is_cancel: e.target.checked })
                       }
                     />
                   </td>
                   <td>{r.plant_code}</td>
                   <td>{r.location_code}</td>
                   <td>
-                    <button onClick={() => saveRow(r)}>💾</button>
+                    {!isViewOnly && (
+                      <button onClick={() => saveRow(r)}>💾</button>
+                    )}
                   </td>
                 </tr>
               );

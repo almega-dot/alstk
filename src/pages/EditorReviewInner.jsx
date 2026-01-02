@@ -7,34 +7,37 @@ export default function EditorReviewInner({ profile }) {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('NORMAL');
+  const [activeTab, setActiveTab] = useState('NORMAL'); // NORMAL | MANUAL
   const [plantCode, setPlantCode] = useState('');
   const [plants, setPlants] = useState([]);
-  const [locationCode, setLocationCode] = useState('');
-  const [locations, setLocations] = useState([]);
-  const [search, setSearch] = useState('');
   const [rows, setRows] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 🔒 ENTRY = view only (single source of truth)
+  // 🔒 ENTRY = view only
   const isViewOnly = profile.role_code === 'ENTRY';
 
-  // Save feedback messages
+  /* ===============================
+     Save messages
+  =============================== */
   const [saveMsgs, setSaveMsgs] = useState([]);
 
   const pushSaveMsg = (text, type = 'success') => {
     const id = `${Date.now()}-${Math.random()}`;
-    setSaveMsgs(prev => [{ id, type, text }, ...prev].slice(0, 5));
-    setTimeout(() => {
-      setSaveMsgs(prev => prev.filter(m => m.id !== id));
-    }, 4500);
+    setSaveMsgs(prev => [{ id, text, type }, ...prev].slice(0, 5));
+    setTimeout(
+      () => setSaveMsgs(prev => prev.filter(m => m.id !== id)),
+      4500
+    );
   };
 
   /* ===============================
      Plant logic
+     EDITOR + ENTRY → fixed plant
+     ADMIN          → selectable
   =============================== */
   useEffect(() => {
-    if (profile.role_code === 'EDITOR') {
+    if (profile.role_code === 'EDITOR' || profile.role_code === 'ENTRY') {
       setPlantCode(profile.plant_code);
     } else {
       supabase
@@ -46,21 +49,7 @@ export default function EditorReviewInner({ profile }) {
   }, [profile]);
 
   /* ===============================
-     Locations
-  =============================== */
-  useEffect(() => {
-    if (!plantCode) return;
-
-    supabase
-      .from('locations')
-      .select('location_code')
-      .eq('plant_code', plantCode)
-      .eq('is_active', true)
-      .then(({ data }) => setLocations(data || []));
-  }, [plantCode]);
-
-  /* ===============================
-     Fetch rows
+     Fetch rows (NO DB JOIN)
   =============================== */
   useEffect(() => {
     if (!plantCode) {
@@ -70,13 +59,23 @@ export default function EditorReviewInner({ profile }) {
 
     setLoading(true);
 
-    const query =
-      activeTab === 'NORMAL'
-        ? supabase
-            .from('stock_entries')
-            .select(`
-              stock_entry_id,
+    const load = async () => {
+      const table =
+        activeTab === 'NORMAL'
+          ? 'stock_entries'
+          : 'stock_entries_manual';
+
+      const idCol =
+        activeTab === 'NORMAL'
+          ? 'stock_entry_id'
+          : 'manual_entry_id';
+
+      const selectCols =
+        activeTab === 'NORMAL'
+          ? `
+              ${idCol},
               tag_no,
+              material_id,
               material_type,
               entry_uom,
               counted_qty,
@@ -85,19 +84,10 @@ export default function EditorReviewInner({ profile }) {
               is_cancel,
               entry_date,
               plant_code,
-              location_code,
-              created_by,
-              created_at,
-              updated_by,
-              updated_at,
-              materials (
-                material_name
-              )
-            `)
-        : supabase
-            .from('stock_entries_manual')
-            .select(`
-              manual_entry_id,
+              location_code
+            `
+          : `
+              ${idCol},
               tag_no,
               material_name,
               material_type,
@@ -109,34 +99,65 @@ export default function EditorReviewInner({ profile }) {
               remarks,
               entry_date,
               plant_code,
-              location_code,
-              created_by,
-              created_at,
-              updated_by,
-              updated_at
-            `);
+              location_code
+            `;
 
-    query
-      .eq('plant_code', plantCode)
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
+      const { data, error } = await supabase
+        .from(table)
+        .select(selectCols)
+        .eq('plant_code', plantCode)
+        .order('created_at', { ascending: false });
+
+      if (error) {
         setLoading(false);
-        if (error) {
-          console.error(error);
-          pushSaveMsg(`Load failed: ${error.message}`, 'error');
-          return;
+        pushSaveMsg(`Load failed: ${error.message}`, 'error');
+        return;
+      }
+
+      /* ---------- FRONTEND MATERIAL JOIN (NORMAL only) ---------- */
+      if (activeTab === 'NORMAL') {
+        const materialIds = [
+          ...new Set(data.map(r => r.material_id).filter(Boolean)),
+        ];
+
+        let matMap = {};
+        if (materialIds.length) {
+          const { data: mats } = await supabase
+            .from('materials')
+            .select('material_id, material_name')
+            .in('material_id', materialIds);
+
+          (mats || []).forEach(m => {
+            matMap[m.material_id] = m.material_name;
+          });
         }
-        setRows(data || []);
-      });
+
+        setRows(
+          data.map(r => ({
+            ...r,
+            material_name: matMap[r.material_id] || '—',
+          }))
+        );
+      } else {
+        // MANUAL already has material_name
+        setRows(data);
+      }
+
+      setLoading(false);
+    };
+
+    load();
   }, [activeTab, plantCode]);
 
   /* ===============================
-     Local update (unchanged)
+     Local update
   =============================== */
   const updateRow = (id, patch) => {
+    if (isViewOnly) return;
+
     setRows(prev =>
       prev.map(r =>
-        (r.stock_entry_id === id || r.manual_entry_id === id)
+        r.stock_entry_id === id || r.manual_entry_id === id
           ? { ...r, ...patch }
           : r
       )
@@ -144,6 +165,8 @@ export default function EditorReviewInner({ profile }) {
   };
 
   const saveRow = async r => {
+    if (isViewOnly) return;
+
     const table =
       activeTab === 'NORMAL'
         ? 'stock_entries'
@@ -170,21 +193,12 @@ export default function EditorReviewInner({ profile }) {
       .eq(idCol, r[idCol]);
 
     if (error) {
-      console.error(error);
       pushSaveMsg(`Save failed: ${error.message}`, 'error');
       return;
     }
 
-    const material =
-      activeTab === 'NORMAL'
-        ? r.materials?.material_name
-        : r.material_name;
-
-    const tag = (r.tag_no || '').trim() || '-';
-    const when = new Date().toLocaleTimeString();
-
     pushSaveMsg(
-      `Saved: ${material || '(no material)'} | Tag: ${tag} | ${when}`,
+      `Saved: ${r.material_name || '(no material)'} | Tag: ${r.tag_no || '-'}`,
       'success'
     );
   };
@@ -194,7 +208,7 @@ export default function EditorReviewInner({ profile }) {
   );
 
   /* ===============================
-     RENDER
+     UI
   =============================== */
   return (
     <div style={{ padding: 20 }}>
@@ -213,29 +227,22 @@ export default function EditorReviewInner({ profile }) {
 
       <br /><br />
 
-      {saveMsgs.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          {saveMsgs.map(m => (
-            <div
-              key={m.id}
-              style={{
-                padding: '8px 10px',
-                marginBottom: 6,
-                border: '1px solid #ccc',
-                borderLeft:
-                  m.type === 'error'
-                    ? '6px solid #c00'
-                    : '6px solid #2a8f2a',
-                background: '#fff',
-                borderRadius: 6,
-                fontSize: 14,
-              }}
-            >
-              {m.text}
-            </div>
-          ))}
+      {saveMsgs.map(m => (
+        <div
+          key={m.id}
+          style={{
+            padding: 8,
+            marginBottom: 6,
+            borderLeft:
+              m.type === 'error'
+                ? '5px solid #c00'
+                : '5px solid #2a8f2a',
+            background: '#fff',
+          }}
+        >
+          {m.text}
         </div>
-      )}
+      ))}
 
       <input
         placeholder="Search…"
@@ -259,7 +266,7 @@ export default function EditorReviewInner({ profile }) {
               <th>Status</th>
               <th>Zero</th>
               <th>Cancel</th>
-              <th>Entry Date</th>
+              <th>Date</th>
               <th>Plant</th>
               <th>Location</th>
               <th>Save</th>
@@ -269,10 +276,6 @@ export default function EditorReviewInner({ profile }) {
           <tbody>
             {filteredRows.map(r => {
               const id = r.stock_entry_id || r.manual_entry_id;
-              const material =
-                activeTab === 'NORMAL'
-                  ? r.materials?.material_name
-                  : r.material_name;
 
               return (
                 <tr key={id}>
@@ -286,7 +289,7 @@ export default function EditorReviewInner({ profile }) {
                     />
                   </td>
 
-                  <td>{material}</td>
+                  <td>{r.material_name}</td>
                   <td>{r.material_type}</td>
                   <td>{r.entry_uom}</td>
 
