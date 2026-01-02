@@ -10,6 +10,7 @@ import EditorReview from './pages/EditorReview';
 import FGStockEntry from './pages/FGStockEntry';
 import FGStockEntryManual from './pages/FGStockEntryManual';
 import FGEditorReview from './pages/FGEditorReview';
+import Reports from './pages/Reports';
 
 /* ===============================
    Simple route guards
@@ -88,6 +89,10 @@ function Dashboard() {
             <div className="dash-text">FG Editor Review</div>
           </Link>
         </div>
+        <Link to="/reports" className="dash-card">
+  <div className="dash-icon">📊</div>
+  <div className="dash-text">Reports</div>
+</Link>
 
         <div className="dash-footer">
           <button className="logout-btn" onClick={logout}>
@@ -183,6 +188,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/reports"
+  element={
+    <ProtectedRoute>
+      <Reports />
+    </ProtectedRoute>
+  }
+/>
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
